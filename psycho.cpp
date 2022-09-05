@@ -35,7 +35,7 @@ public:
 		for(int i = 0; i < GAME_N; ++i)
 			bank[i] = i;
 		random_shuffle(bank.begin(), bank.end());
-		bank_hand = bank;
+		bank_hand = {1,0,2};
 	}
 
 	Gamestate update(int player, int card){
@@ -141,7 +141,7 @@ vector<int> legal_moves(int state, int player) {
 	return ans;
 }
 
-int getAction(float strategy[]) {
+int getAction(vector<float> strategy) {
 	double r = (float)(rand()) / RAND_MAX;
 	int a = 0;
 	float cumulativeProbability = 0;
@@ -154,8 +154,8 @@ int getAction(float strategy[]) {
 	return a;
 }
 
-float* getStrategy(int state, int player, float realizationWeight){
-	float* myStrategy = new float[NUM_ACTIONS];
+vector<float> getStrategy(int state, int player, float realizationWeight){
+	vector<float> myStrategy(NUM_ACTIONS);
 	float totalRegret = 0;
 	vector<int> legal = legal_moves(state, player);
 	int normalization = legal.size();
@@ -177,8 +177,8 @@ float* getStrategy(int state, int player, float realizationWeight){
 	return myStrategy;
 }
 
-float* getAverageStrategy(int state, int player) {
-	float* avgStrategy = new float[NUM_ACTIONS];
+vector<float> getAverageStrategy(int state, int player) {
+	vector<float> avgStrategy(NUM_ACTIONS);
 	float normalizingSum = 0;
 	vector<int> legal = legal_moves(state, player);
 	int normalization = legal.size();
@@ -195,8 +195,19 @@ float* getAverageStrategy(int state, int player) {
 
 
 float cfr(Gamestate node, int player, int iteration, float p1, float p2){
-	if(node.hist_len == 3 * GAME_N) //game has ended
+	if(node.hist_len == 3 * GAME_N){
+	 //game has ended
+		if(iteration % 1000 == 1 && node.history[1] == 17 && node.history[2] == 1 && node.hist_len == 9 && node.history[4] == 2 && node.history[5] == 2){
+			cout << "\nDEBUG:\n";
+			cout << print_repr(node.repr) << endl;
+			for(auto x: node.history)
+				cout << x << " ";
+			cout << endl;
+			cout << "player " << player << endl;
+			cout << "utility for that player: " << (float)node.utility(player) << endl;
+		}
 		return (float)node.utility(player);
+	}
 
 	if(node.hist_len % 3 == 0) //a chance event occurs next
 		return cfr(node.sample_bank(), player, iteration, p1, p2);
@@ -211,7 +222,7 @@ float cfr(Gamestate node, int player, int iteration, float p1, float p2){
 	int info = node.infostate;
 	//Find the current strategy profile
 	vector<int> actions = legal_moves(info, player_to_move);
-	float* strategy = getStrategy(info, player_to_move, (player_to_move == PLAYER_1 ? p1 : p2));
+	vector<float> strategy = getStrategy(info, player_to_move, (player_to_move == PLAYER_1 ? p1 : p2));
 
 	//Recursively compute value and counterfactual value
 	float strategy_value = 0;
@@ -227,6 +238,21 @@ float cfr(Gamestate node, int player, int iteration, float p1, float p2){
 			counterfactual_strategy_value[a] = cfr(next_node, player, iteration, p1, strategy[a] * p2);
 
 		strategy_value += strategy[a] * counterfactual_strategy_value[a];
+	}
+
+	if(iteration % 1000 == 1 && (node.hist_len == 5 || node.hist_len == 4) && node.history[1] == 0 && node.history[2] == 1) //&& node.history[4] == 2 && node.history[5] == 2)
+	{
+		cout << "\nDEBUG:\n";
+		cout << print_repr(node.repr) << endl;
+		for(auto x: node.history)
+			cout << x << " ";
+		cout << endl;
+		cout << "info " << info << endl; 
+		cout << "player " << player << endl; 
+		for(auto a: actions)
+			cout << endl << "    Action: " << a << " Value: " << counterfactual_strategy_value[a] << " " << strategy[a] << " " << cumulativeRegret[info][a];
+
+		cout << endl << strategy_value;
 	}
 
 	//Accumulate regret and unnormalized strategy probabilities
@@ -316,7 +342,7 @@ int play_vs_ai(){
 
 int main(){
 	srand(time(0));
-	train(100000);
+	train(10000);
 
 	int total = 0;
 	for(int i = 1; i <=100; ++i){
