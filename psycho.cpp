@@ -8,14 +8,14 @@
 #include <algorithm>
 
 #define MAX 200000005
-#define GAME_N 3
+#define GAME_N 6
 #define NUM_ACTIONS GAME_N
 #define N_REPR (GAME_N * GAME_N) * (1 << GAME_N * 3)
 
 using namespace std;
 
-float cumulativeRegret[N_REPR][NUM_ACTIONS];
-float cumulativeStrategy[N_REPR][NUM_ACTIONS];
+float cumulativeRegret[2][N_REPR][NUM_ACTIONS];
+float cumulativeStrategy[2][N_REPR][NUM_ACTIONS];
 
 int PLAYER_1 = 0, PLAYER_2 = 1, BANK = 2;
 float null_strat[NUM_ACTIONS];
@@ -35,7 +35,7 @@ public:
 		for(int i = 0; i < GAME_N; ++i)
 			bank[i] = i;
 		random_shuffle(bank.begin(), bank.end());
-		bank_hand = {1,0,2};
+		bank_hand = bank;
 	}
 
 	Gamestate update(int player, int card){
@@ -161,17 +161,17 @@ vector<float> getStrategy(int state, int player, float realizationWeight){
 	int normalization = legal.size();
 
 	for(auto i: legal)
-		if(cumulativeRegret[state][i] > 0)
-			totalRegret += cumulativeRegret[state][i];
+		if(cumulativeRegret[player][state][i] > 0)
+			totalRegret += cumulativeRegret[player][state][i];
 
 
 	for(auto i: legal){
 		if(totalRegret > 0)
-			myStrategy[i] = cumulativeRegret[state][i] > 0 ? (float)cumulativeRegret[state][i] / totalRegret : 0;
+			myStrategy[i] = cumulativeRegret[player][state][i] > 0 ? cumulativeRegret[player][state][i] / totalRegret : 0;
 		else
 			myStrategy[i] = (float)1 / normalization;
 
-		cumulativeStrategy[state][i] += realizationWeight * myStrategy[i];
+		cumulativeStrategy[player][state][i] += realizationWeight * myStrategy[i];
 	}
 
 	return myStrategy;
@@ -184,10 +184,10 @@ vector<float> getAverageStrategy(int state, int player) {
 	int normalization = legal.size();
 
 	for (auto a: legal)
-		normalizingSum += cumulativeStrategy[state][a];
+		normalizingSum += cumulativeStrategy[player][state][a];
 	for (auto a: legal)
 		if (normalizingSum > 0)
-			avgStrategy[a] = cumulativeStrategy[state][a] / normalizingSum;
+			avgStrategy[a] = cumulativeStrategy[player][state][a] / normalizingSum;
 		else
 			avgStrategy[a] = 1.0 / normalization;
 	return avgStrategy;
@@ -196,22 +196,12 @@ vector<float> getAverageStrategy(int state, int player) {
 
 float cfr(Gamestate node, int player, int iteration, float p1, float p2){
 	if(node.hist_len == 3 * GAME_N){
-	 //game has ended
-		if(iteration % 1000 == 1 && node.history[1] == 17 && node.history[2] == 1 && node.hist_len == 9 && node.history[4] == 2 && node.history[5] == 2){
-			cout << "\nDEBUG:\n";
-			cout << print_repr(node.repr) << endl;
-			for(auto x: node.history)
-				cout << x << " ";
-			cout << endl;
-			cout << "player " << player << endl;
-			cout << "utility for that player: " << (float)node.utility(player) << endl;
-		}
 		return (float)node.utility(player);
 	}
 
 	if(node.hist_len % 3 == 0) //a chance event occurs next
 		return cfr(node.sample_bank(), player, iteration, p1, p2);
-	
+
 	int player_to_move;
 
 	if(node.hist_len % 3 == 1)
@@ -240,29 +230,17 @@ float cfr(Gamestate node, int player, int iteration, float p1, float p2){
 		strategy_value += strategy[a] * counterfactual_strategy_value[a];
 	}
 
-	if(iteration % 1000 == 1 && (node.hist_len == 5 || node.hist_len == 4) && node.history[1] == 0 && node.history[2] == 1) //&& node.history[4] == 2 && node.history[5] == 2)
-	{
-		cout << "\nDEBUG:\n";
-		cout << print_repr(node.repr) << endl;
-		for(auto x: node.history)
-			cout << x << " ";
-		cout << endl;
-		cout << "info " << info << endl; 
-		cout << "player " << player << endl; 
-		for(auto a: actions)
-			cout << endl << "    Action: " << a << " Value: " << counterfactual_strategy_value[a] << " " << strategy[a] << " " << cumulativeRegret[info][a];
-
-		cout << endl << strategy_value;
-	}
 
 	//Accumulate regret and unnormalized strategy probabilities
 	float p_player = (player == PLAYER_1 ? p1 : p2);
 	float p_other = (player == PLAYER_1 ? p2 : p1);
-	if(player == player_to_move){
-		for(auto a: actions){
-			cumulativeRegret[info][a] += p_other * (counterfactual_strategy_value[a] - strategy_value);
-		}
-	}
+
+	for(auto a: actions){
+		if(player == player_to_move)
+			cumulativeRegret[player_to_move][info][a] += p_other * (counterfactual_strategy_value[a] - strategy_value);
+		else
+			cumulativeRegret[player_to_move][info][a] -= p_other * (counterfactual_strategy_value[a] - strategy_value);
+	}	
 
 	return strategy_value;
 }
@@ -342,12 +320,12 @@ int play_vs_ai(){
 
 int main(){
 	srand(time(0));
-	train(10000);
+	train(1000);
 
 	int total = 0;
-	for(int i = 1; i <=100; ++i){
+	for(int i = 1; i <=20; ++i){
 		cout << "\nGame number " << i << endl;
 		total -= play_vs_ai();
-		cout << "Current total AI score: " << total << endl;
+		cout << "Current total AI score vs a human: " << total << endl;
 	}
 }	
