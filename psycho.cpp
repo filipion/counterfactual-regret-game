@@ -8,9 +8,9 @@
 #include <algorithm>
 
 #define MAX 200000005
-#define GAME_N 6
-#define NUM_ACTIONS GAME_N
-#define N_REPR (GAME_N * GAME_N) * (1 << GAME_N * 3)
+#define GAME_SIZE 4
+#define NUM_ACTIONS GAME_SIZE
+#define N_REPR (GAME_SIZE + 4) * (1 << GAME_SIZE * 3)
 
 using namespace std;
 
@@ -31,8 +31,8 @@ public:
 	int hist_len = 0;
 
 	Gamestate(int r): repr{r}{
-		vector<int> bank(GAME_N);
-		for(int i = 0; i < GAME_N; ++i)
+		vector<int> bank(GAME_SIZE);
+		for(int i = 0; i < GAME_SIZE; ++i)
 			bank[i] = i;
 		random_shuffle(bank.begin(), bank.end());
 		bank_hand = bank;
@@ -42,13 +42,13 @@ public:
 		Gamestate next_node(0);
 		next_node = *this;
 
-		int play_bit = 1 << (card + player * GAME_N);
+		int play_bit = 1 << (card + player * GAME_SIZE);
 		assert((play_bit & next_node.repr) == 0); //check the card was not already played
 		next_node.repr += play_bit;
 
 
 		if(player == BANK){
-			next_node.repr = ((card + 2) << (3 * GAME_N)) + (next_node.repr % ((1 << (3 * GAME_N))));
+			next_node.repr = ((card + 2) << (3 * GAME_SIZE)) + (next_node.repr % ((1 << (3 * GAME_SIZE))));
 			next_node.infostate = next_node.repr; //whenever a card is drawn from the bank that means public info can be updated
 		}
 
@@ -67,8 +67,8 @@ public:
 	int utility(int player){
 		int score_1 = 0;
 		int score_2 = 0;
-		assert(hist_len == 3 * GAME_N);
-		for(int i = 0; i < 3 * GAME_N; i += 3){
+		assert(hist_len == 3 * GAME_SIZE);
+		for(int i = 0; i < 3 * GAME_SIZE; i += 3){
 			if(history[i + 1] > history[i + 2])
 				score_1 += history[i] + 2;
 			if(history[i + 1] < history[i + 2])
@@ -94,7 +94,7 @@ string print_repr(int state){
 	int reprcopy = state;
 	string answer;
 	answer += "P1's hand: ";
-	for(int i = 0; i < GAME_N; ++i){
+	for(int i = 0; i < GAME_SIZE; ++i){
 		if(reprcopy % 2 == 0){
 			answer += to_string(i);
 			answer += " ";
@@ -103,7 +103,7 @@ string print_repr(int state){
 	}
 
 	answer += "\nP2's hand: ";
-	for(int i = 0; i < GAME_N; ++i){
+	for(int i = 0; i < GAME_SIZE; ++i){
 		if(reprcopy % 2 == 0){
 			answer += to_string(i);
 			answer += " ";
@@ -112,7 +112,7 @@ string print_repr(int state){
 	}
 
 	answer += "\nThe bank's hand: ";
-	for(int i = 0; i < GAME_N; ++i){
+	for(int i = 0; i < GAME_SIZE; ++i){
 		if(reprcopy % 2 == 0){
 			answer += to_string(i);
 			answer += " ";
@@ -130,7 +130,7 @@ vector<int> legal_moves(int state, int player) {
 	vector<int> ans;
 
 	if(player == PLAYER_2)
-		state = (state >> GAME_N);
+		state = (state >> GAME_SIZE);
 
 	for (int a = 0; a < NUM_ACTIONS; a++){
 	 	if(state % 2 == 0)
@@ -195,7 +195,7 @@ vector<float> getAverageStrategy(int state, int player) {
 
 
 float cfr(Gamestate node, int player, int iteration, float p1, float p2){
-	if(node.hist_len == 3 * GAME_N){
+	if(node.hist_len == 3 * GAME_SIZE){
 		return (float)node.utility(player);
 	}
 
@@ -251,7 +251,7 @@ void train(int iterations) {
 		Gamestate new_root(0);
 		root = new_root;
 
-		if(t % 1000 == 0)
+		if(t % 100 == 0)
 			cout << "\nCFR iteration " << t << "/" << iterations;
 
 		cfr(root, PLAYER_1, t, 1.0, 1.0);
@@ -260,7 +260,7 @@ void train(int iterations) {
 
 void ai_vs_ai(){
 	Gamestate game(0);
-	for(int i = 0; i < GAME_N; ++i){
+	for(int i = 0; i < GAME_SIZE; ++i){
 		game = game.sample_bank();
 		int info = game.infostate;
 
@@ -281,7 +281,7 @@ void ai_vs_ai(){
 
 int play_vs_ai(){
 	Gamestate game(0);
-	for(int i = 0; i < GAME_N; ++i){
+	for(int i = 0; i < GAME_SIZE; ++i){
 		game = game.sample_bank();
 		int info = game.infostate;
 
