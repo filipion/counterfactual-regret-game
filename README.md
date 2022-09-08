@@ -20,6 +20,12 @@ Keep track of the cards your opponent’s play so you can play your hand more st
 In order to keep the state space manageable without neural networks, this first project focuses on solving a simpler version of the game (6-7 cards in hand and two players instead of three). As in the case of tabular reinforcement learning, this algorithm will not scale to larger games like No-Limit Texas Hold'Em without additional techniques and engineering effort.
 
 # Solving the game: counterfactual regret minimization
+
+<p align="center">
+<img src="https://raw.githubusercontent.com/filipion/counterfactual-regret-game/main/diagrams/Flowcharts.png" alt="Modified Rock-Paper-Scissors" style="height: 300px; width:900px;" />
+</p>
+<p align="center"> A game with nontrivial Nash equilibrium </p>
+
 ### Nash equilibria
 How do we program a bot for this game? The problem seems different from, say, chess, where there exists a theoretical optimum strategy. In our game (like in poker and like in rock-paper-scissors) it is important not only to extract value efficiently throughout the game, but also to do so in an unpredictable manner (otherwise a human opponent playing against our AI could just predict our next bid and bid exactly one point higher).
 
