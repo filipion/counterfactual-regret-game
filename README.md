@@ -1,4 +1,4 @@
-# The story
+# Tackling Imperfect Information in Games
 I used like to go around and teach people this neat little card game. It's pretty fun, as the game depends on predicting your friends' moves, as well as on keeping yourself unpredictable. Later I was reading about advances in AI like FAIR's [ReBeL](https://ai.facebook.com/blog/rebel-a-general-game-playing-ai-bot-that-excels-at-poker-and-more/), a poker-playing neural net, and I realized those techniques are probably powerful enough to solve one of my favourite childhood card games.  
 
 # Rules
