@@ -247,7 +247,7 @@ float cfr(Gamestate node, int player, int iteration, float p1, float p2){
 
 void train(int iterations) {
 	Gamestate root(0);
-	for (int t = 1; t <= iterations; t++) {
+	for (int t = 0; t <= iterations; t++) {
 		Gamestate new_root(0);
 		root = new_root;
 
